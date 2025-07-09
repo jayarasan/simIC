@@ -53,8 +53,16 @@ simIC <- function(n = 100,
     },
     "gamma" = function(n) rgamma(n, shape = shape, scale = scale),
     "gompertz" = function(n) {
+      a <- shape  # shape parameter > 0
+      b <- scale  # scale parameter > 0
+
       u <- runif(n)
-      location + scale * log(-log(u))  # Gompertz approximation
+
+      # Make sure parameters are positive to avoid invalid values
+      if (a <= 0 || b <= 0) stop("Shape and scale must be positive for Gompertz")
+
+      t <- (1 / a) * log(1 - (a / b) * log(u))
+      return(t)
     },
     stop("Unsupported distribution.")
   )
