@@ -1,0 +1,10 @@
+Package: simIC
+Title: Simulate Interval-Censored Survival Data
+Version: 0.1.0
+Authors@R: person("Jayanthi", "A/P Arasan", email = "your@email.com", role = c("aut", "cre"))
+Description: Simulates interval-censored data using various survival distributions.
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2
