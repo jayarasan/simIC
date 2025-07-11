@@ -1,26 +1,21 @@
 #' Simulate Interval-Censored Survival Data
-#'
 #' This function simulates interval-censored survival data based on the specified distribution.
 #' It supports Weibull, Exponential, Log-Normal, Logistic, and more.
-#'
 #' @param dist_params Optional list of additional distribution parameters.
 #' @param visit_start Optional start time for censoring intervals. Default is 0.
 #' @param n Number of samples.
 #' @param dist The distribution to use. Options include: "weibull", "exp", "lognormal",
-#'   "loglogistic", "logistic", "normal", "EMV", "gamma", "gompertz".
+#'   "loglogistic", "normal", "EMV", "gamma", "gompertz".
 #' @param shape Shape parameter for Weibull, Log-Logistic, etc.
 #' @param scale Scale parameter for Weibull, Log-Logistic, etc.
 #' @param meanlog Mean log for Log-Normal distribution.
 #' @param sdlog Standard deviation for Log-Normal distribution.
 #' @param location Location parameter for Logistic, EMV, etc.
 #' @param width Width of the interval for censoring.
-#'
 #' @return A data frame with the following columns: \code{id}, \code{left}, \code{right}, \code{event}, and \code{true_time}.
-#'
 #' @examples
 #' simIC(n = 15, dist = "weibull", shape = 1.2, scale = 5, width = 4)
 #' simIC(n = 10, dist = "lognormal", meanlog = 3, sdlog = 1, width = 5)
-#'
 #' @export
 #' @importFrom stats rexp rgamma rlnorm rlogis rnorm runif rweibull
 
