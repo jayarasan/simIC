@@ -7,12 +7,12 @@
 #' @param visit_start Optional start time for censoring intervals. Default is 0.
 #' @param n Number of samples.
 #' @param dist The distribution to use. Options include: "weibull", "exp", "lognormal",
-#'   "loglogistic", "logistic", "normal", "gumbel", "gamma", "gompertz".
+#'   "loglogistic", "logistic", "normal", "EMV", "gamma", "gompertz".
 #' @param shape Shape parameter for Weibull, Log-Logistic, etc.
 #' @param scale Scale parameter for Weibull, Log-Logistic, etc.
 #' @param meanlog Mean log for Log-Normal distribution.
 #' @param sdlog Standard deviation for Log-Normal distribution.
-#' @param location Location parameter for Logistic, Gumbel, etc.
+#' @param location Location parameter for Logistic, EMV, etc.
 #' @param width Width of the interval for censoring.
 #'
 #' @return A data frame with the following columns: \code{id}, \code{left}, \code{right}, \code{event}, and \code{true_time}.
@@ -47,7 +47,7 @@ simIC <- function(n = 100,
     "lognormal" = function(n) rlnorm(n, meanlog = meanlog, sdlog = sdlog),
     "logistic" = function(n) rlogis(n, location = location, scale = scale),
     "normal" = function(n) rnorm(n, mean = location, sd = scale),
-    "gumbel" = function(n) {
+    "EMV" = function(n) {
       u <- runif(n)
       exp(location + scale * log(-log(1 - u))) 
     },
