@@ -49,7 +49,7 @@ simIC <- function(n = 100,
     "normal" = function(n) rnorm(n, mean = location, sd = scale),
     "gumbel" = function(n) {
       u <- runif(n)
-      location - scale * log(-log(u))
+      location + scale * log(-log(1 - u)) 
     },
     "gamma" = function(n) rgamma(n, shape = shape, scale = scale),
     "gompertz" = function(n) {
