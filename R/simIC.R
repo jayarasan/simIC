@@ -61,7 +61,7 @@ simIC <- function(n = 100,
       # Make sure parameters are positive to avoid invalid values
       if (a <= 0 || b <= 0) stop("Shape and scale must be positive for Gompertz")
 
-      t <- (1 / a) * log(1 - (a / b) * log(u))
+      t <- (1 / a) * log(1 - (a / b) * log(1-u))
       return(t)
     },
     stop("Unsupported distribution.")
