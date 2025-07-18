@@ -1,9 +1,13 @@
 Package: simIC
-Title: What the Package Does (One Line, Title Case)
-Version: 0.0.0.9000
+Title: Simulate and Analyze Interval-Censored Survival Data
+Version: 0.0.9000
 Authors@R: 
-    person("First", "Last", , "first.last@example.com", role = c("aut", "cre"))
-Description: What the package does (one paragraph).
+    person("Jayanthi", "Arasan", email = "your@email.com", role = c("aut", "cre"))
+Description: 
+    Provides tools to simulate and analyze interval-censored survival data
+    from common parametric distributions such as Weibull, Exponential, and
+    Log-Normal. Includes imputation methods, maximum likelihood estimation,
+    and visualization functions for model evaluation and teaching purposes.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
