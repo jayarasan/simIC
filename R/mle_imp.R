@@ -4,19 +4,18 @@
 #'
 #' @param left Left bounds of censoring intervals
 #' @param right Right bounds of censoring intervals
-#' @param dist Distribution name (e.g. \"weibull\", \"loglogistic\", \"EMV\")
-#' @param impute Imputation method: \"midpoint\", \"random\", etc.
+#' @param dist Distribution name (e.g. "weibull", "loglogistic", "EMV")
+#' @param impute Imputation method: "midpoint", "random", etc.
 #'
 #' @return A list containing estimates, standard errors, and log-likelihood
 #' @export
-
 
 mle_imp <- function(left, right, dist = "weibull",
                     impute = c("midpoint", "random", "median",
                                "harmonic_median", "geometric_median", "random_survival")) {
   impute <- match.arg(impute)
   prelim_times <- ifelse(is.finite(right), (left + right) / 2, left)
-  prelim_times <- pmax(prelim_times, 1e-5)  # avoid log(0) or negative issues
+  prelim_times <- pmax(prelim_times, 1e-5)
 
   # --- Initial negative log-likelihood
   neg_loglik_init <- switch(dist,
@@ -116,12 +115,13 @@ mle_imp <- function(left, right, dist = "weibull",
         times[i] <- (left[i] + right[i]) / 2
       } else {
         u_vals <- runif(100, min = S_R, max = S_L)
-        t_vals <- quantile_fn(1 - u_vals)
-        times[i] <- sample(t_vals, 1)
+        t_vals <- suppressWarnings(quantile_fn(1 - u_vals))
+        t_vals <- t_vals[is.finite(t_vals) & t_vals > 0]
+        times[i] <- if (length(t_vals) == 0) (left[i] + right[i]) / 2 else sample(t_vals, 1)
       }
     }
   }
-  times <- pmax(times, 1e-5)  # prevent log(0), NaNs, Infs
+  times <- pmax(times, 1e-5)
 
   # --- Final MLE on imputed data
   neg_loglik_final <- switch(dist,
@@ -189,4 +189,3 @@ mle_imp <- function(left, right, dist = "weibull",
     converged = fit$convergence == 0
   ))
 }
-
