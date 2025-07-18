@@ -55,7 +55,14 @@ simIC <- function(n = 100,
       x
     },
 
-    "normal" = function(n) rnorm(n, mean = location, sd = scale),
+
+
+    "normal" = function(n) {
+  x <- rnorm(n, mean = location, sd = scale)
+  x[x <= 0] <- 1e-5  # ensure positive times
+  x
+},
+
 
     "EMV" = function(n) {
       u <- runif(n)
