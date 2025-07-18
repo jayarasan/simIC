@@ -132,7 +132,21 @@ mle_imp <- function(left, right, dist = "weibull",
   fit <- optim(par = est_par, fn = neg_loglik_final, method = "L-BFGS-B",
                lower = rep(1e-5, length(est_par)), hessian = TRUE)
 
-  estimates <- setNames(fit$par, if (dist == "exp") "scale" else c("param1", "param2"))
+  # Assign correct parameter names
+  param_names <- switch(dist,
+    "weibull"     = c("shape", "scale"),
+    "loglogistic" = c("shape", "scale"),
+    "gamma"       = c("shape", "scale"),
+    "gompertz"    = c("shape", "scale"),
+    "exp"         = "scale",
+    "lognormal"   = c("meanlog", "sdlog"),
+    "logistic"    = c("location", "scale"),
+    "normal"      = c("location", "scale"),
+    "EMV"         = c("location", "scale"),
+    c("param1", "param2")
+  )
+  param_names <- param_names[seq_along(fit$par)]
+  estimates <- setNames(fit$par, param_names)
 
   if (fit$convergence == 0 && !is.null(fit$hessian)) {
     vcov <- tryCatch(solve(fit$hessian), error = function(e) matrix(NA, length(estimates), length(estimates)))
