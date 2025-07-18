@@ -1,16 +1,13 @@
-#' Imputation-Based MLE for Interval-Censored Data
+#' Interval-Censored Maximum Likelihood Estimation
 #'
-#' Estimates distribution parameters using imputed event times.
+#' Estimates distribution parameters by maximizing the interval-censored likelihood.
 #'
 #' @param left Left bounds of censoring intervals
 #' @param right Right bounds of censoring intervals
-#' @param dist Distribution name (e.g. \"weibull\", \"loglogistic\", \"EMV\")
-#' @param impute Imputation method: \"midpoint\", \"random\", etc.
-#'
-#' @return A list containing estimates, standard errors, and log-likelihood
+#' @param dist Distribution name (e.g. "weibull", "loglogistic", "EMV")
+#' @param true_params Optional list of true parameter names for labeling
+#' @return A list containing estimates, standard errors, log-likelihood, and convergence status
 #' @export
-
-
 mle_int <- function(left, right, dist, true_params = list()) {
   left <- pmax(left, 1e-5)
   right <- pmax(right, 1e-5)
@@ -21,20 +18,19 @@ mle_int <- function(left, right, dist, true_params = list()) {
       "weibull" = {
         shape <- params[1]; scale <- params[2]
         mapply(function(l, r) {
-          if (is.infinite(r)) log(1 - pweibull(l, shape, scale))
+          if (is.infinite(r)) log(pmax(1 - pweibull(l, shape, scale), 1e-10))
           else if (l == r) dweibull(l, shape, scale, log = TRUE)
-          else log(pweibull(r, shape, scale) - pweibull(l, shape, scale))
+          else log(pmax(pweibull(r, shape, scale) - pweibull(l, shape, scale), 1e-10))
         }, left, right)
       },
       "exp" = {
-        rate <- 1 / params[1]  # param[1] is scale
+        rate <- 1 / params[1]
         mapply(function(l, r) {
-          if (is.infinite(r)) log(1 - pexp(l, rate))
+          if (is.infinite(r)) log(pmax(1 - pexp(l, rate), 1e-10))
           else if (l == r) dexp(l, rate, log = TRUE)
           else log(pmax(pexp(r, rate) - pexp(l, rate), 1e-10))
         }, left, right)
-      }
-      ,
+      },
       "logistic" = {
         location <- params[1]; scale <- params[2]
         mapply(function(l, r) {
@@ -44,7 +40,6 @@ mle_int <- function(left, right, dist, true_params = list()) {
           else log(pmax(plogis(r, location, scale) - plogis(l, location, scale), 1e-10))
         }, left, right)
       },
-
       "loglogistic" = {
         shape <- params[1]; scale <- params[2]
         pllogis <- function(x) 1 / (1 + (scale / x)^shape)
@@ -54,39 +49,31 @@ mle_int <- function(left, right, dist, true_params = list()) {
           top / bot
         }
         mapply(function(l, r) {
-          if (is.infinite(r)) log(1 - pllogis(l))
-          else if (l == r) log(dllogis(l))
-          else log(pllogis(r) - pllogis(l))
+          if (is.infinite(r)) log(pmax(1 - pllogis(l), 1e-10))
+          else if (l == r) log(pmax(dllogis(l), 1e-10))
+          else log(pmax(pllogis(r) - pllogis(l), 1e-10))
         }, left, right)
       },
-
       "normal" = {
         location <- params[1]; scale <- params[2]
         mapply(function(l, r) {
-          if (is.infinite(r)) {
-            log(pmax(1 - pnorm(l, location, scale), 1e-10))
-          } else if (l == r) {
-            dnorm(l, location, scale, log = TRUE)
-          } else {
-            log(pmax(pnorm(r, location, scale) - pnorm(l, location, scale), 1e-10))
-          }
+          if (is.infinite(r)) log(pmax(1 - pnorm(l, location, scale), 1e-10))
+          else if (l == r) dnorm(l, location, scale, log = TRUE)
+          else log(pmax(pnorm(r, location, scale) - pnorm(l, location, scale), 1e-10))
         }, left, right)
       },
-
       "EMV" = {
         location <- params[1]; scale <- params[2]
         z <- function(t) (log(t) - location) / scale
         pemv <- function(t) 1 - exp(-exp(z(t)))
         demv <- function(t) (1 / (t * scale)) * exp(z(t)) * exp(-exp(z(t)))
-
         mapply(function(l, r) {
           if (l <= 0 || r <= 0) return(-1e10)
           if (is.infinite(r)) log(pmax(1 - pemv(l), 1e-10))
           else if (l == r) log(pmax(demv(l), 1e-10))
           else log(pmax(pemv(r) - pemv(l), 1e-10))
         }, left, right)
-      }
-      ,
+      },
       "gamma" = {
         shape <- params[1]; scale <- params[2]
         mapply(function(l, r) {
@@ -101,26 +88,20 @@ mle_int <- function(left, right, dist, true_params = list()) {
         pgomp <- function(t) 1 - exp(-(b / a) * (exp(a * t) - 1))
         dgomp <- function(t) b * exp(a * t) * exp(-(b / a) * (exp(a * t) - 1))
         mapply(function(l, r) {
-          if (a <= 0 || b <= 0 || l < 0 || r < 0) return(-1e10)  # Penalize invalid
-          if (is.infinite(r)) {
-            log(pmax(1 - pgomp(l), 1e-10))
-          } else if (l == r) {
-            log(pmax(dgomp(l), 1e-10))
-          } else {
-            log(pmax(pgomp(r) - pgomp(l), 1e-10))
-          }
+          if (a <= 0 || b <= 0 || l < 0 || r < 0) return(-1e10)
+          if (is.infinite(r)) log(pmax(1 - pgomp(l), 1e-10))
+          else if (l == r) log(pmax(dgomp(l), 1e-10))
+          else log(pmax(pgomp(r) - pgomp(l), 1e-10))
         }, left, right)
-      }
-      ,
+      },
       "lognormal" = {
         meanlog <- params[1]; sdlog <- params[2]
         mapply(function(l, r) {
-          if (is.infinite(r)) log(1 - plnorm(l, meanlog, sdlog))
+          if (is.infinite(r)) log(pmax(1 - plnorm(l, meanlog, sdlog), 1e-10))
           else if (l == r) dlnorm(l, meanlog, sdlog, log = TRUE)
-          else log(plnorm(r, meanlog, sdlog) - plnorm(l, meanlog, sdlog))
+          else log(pmax(plnorm(r, meanlog, sdlog) - plnorm(l, meanlog, sdlog), 1e-10))
         }, left, right)
       },
-      # Add other distributions here as needed
       stop("Unsupported distribution.")
     )
 
@@ -137,7 +118,6 @@ mle_int <- function(left, right, dist, true_params = list()) {
   )
 
   lower_bounds <- rep(1e-5, length(init))
-
   fit <- optim(init, loglik, method = "L-BFGS-B", lower = lower_bounds, hessian = TRUE)
 
   estimates <- fit$par
@@ -160,11 +140,10 @@ mle_int <- function(left, right, dist, true_params = list()) {
     p = formatC(pvals, digits = 6, format = "f")
   )
 
-  # Set rownames if length matches
-  if (!is.null(names(true_params)) && length(true_params) == length(estimates)) {
-    rownames(result) <- names(true_params)
+  rownames(result) <- if (!is.null(names(true_params)) && length(true_params) == length(estimates)) {
+    names(true_params)
   } else {
-    rownames(result) <- paste0("param", seq_along(estimates))
+    paste0("param", seq_along(estimates))
   }
 
   list(
