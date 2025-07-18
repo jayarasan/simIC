@@ -40,22 +40,30 @@ simIC <- function(n = 100,
     "weibull" = function(n) rweibull(n, shape = shape, scale = scale),
     "exp" = function(n) rexp(n, rate = 1 / scale),
 
-"logistic" = function(n) {
-  x <- rlogis(n, location = location, scale = scale)
-  while (any(x < 0)) {
-    x[x < 0] <- rlogis(sum(x < 0), location = location, scale = scale)
-  }
-  x
-},
+    "loglogistic" = function(n) {
+      u <- runif(n)
+      scale * (u / (1 - u))^(1 / shape)
+    },
 
     "lognormal" = function(n) rlnorm(n, meanlog = meanlog, sdlog = sdlog),
-    "logistic" = function(n) rlogis(n, location = location, scale = scale),
+
+    "logistic" = function(n) {
+      x <- rlogis(n, location = location, scale = scale)
+      while (any(x < 0)) {
+        x[x < 0] <- rlogis(sum(x < 0), location = location, scale = scale)
+      }
+      x
+    },
+
     "normal" = function(n) rnorm(n, mean = location, sd = scale),
+
     "EMV" = function(n) {
       u <- runif(n)
       exp(location + scale * log(-log(1 - u)))
     },
+
     "gamma" = function(n) rgamma(n, shape = shape, scale = scale),
+
     "gompertz" = function(n) {
       a <- shape
       b <- scale
@@ -63,6 +71,7 @@ simIC <- function(n = 100,
       u <- runif(n)
       (1 / a) * log(1 - (a / b) * log(1 - u))
     },
+
     stop("Unsupported distribution.")
   )
 
