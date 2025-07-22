@@ -107,7 +107,6 @@ simIC <- function(n = 100,
     id = seq_len(n),
     left = left,
     right = right,
-    % event = ifelse(is.infinite(right), 0, 1),
     true_time = true_times
   )
 }
