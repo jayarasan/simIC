@@ -5,7 +5,8 @@
 #' @param left Left bounds of censoring intervals
 #' @param right Right bounds of censoring intervals
 #' @param dist Distribution name (e.g. "weibull", "loglogistic", "EMV")
-#' @param impute Imputation method: "midpoint", "random", etc.
+#' @param impute Imputation method: "midpoint", "random", "median",
+#' "harmonic_median", "geometric_median", "random_survival"
 #' @return A list containing estimates, standard errors, and log-likelihood
 #' @export
 
@@ -13,10 +14,11 @@ mle_imp <- function(left, right, dist = "weibull",
                     impute = c("midpoint", "random", "median",
                                "harmonic_median", "geometric_median", "random_survival")) {
   impute <- match.arg(impute)
+
+  # Use midpoint for initial estimation
   prelim_times <- ifelse(is.finite(right), (left + right) / 2, left)
   prelim_times <- pmax(prelim_times, 1e-5)
 
-  # --- Initial negative log-likelihood
   neg_loglik_init <- switch(dist,
     "weibull" = function(par) -sum(dweibull(prelim_times, par[1], par[2], log = TRUE)),
     "lognormal" = function(par) -sum(dlnorm(prelim_times, par[1], par[2], log = TRUE)),
@@ -67,7 +69,7 @@ mle_imp <- function(left, right, dist = "weibull",
   fit0 <- optim(par = init, fn = neg_loglik_init, method = "L-BFGS-B", lower = rep(1e-5, length(init)))
   est_par <- fit0$par
 
-  # --- CDF and Quantile functions
+  # Impute data using selected method
   cdf_fn <- switch(dist,
     "weibull" = function(t) pweibull(t, shape = est_par[1], scale = est_par[2]),
     "lognormal" = function(t) plnorm(t, meanlog = est_par[1], sdlog = est_par[2]),
@@ -92,11 +94,10 @@ mle_imp <- function(left, right, dist = "weibull",
                       error = function(e) NA)
       ifelse(is.finite(val) & val > 0, val, NA)
     },
-    "EMV" = function(p) exp(est_par[1] - est_par[2] * log(-log(1 - p))),
+    "EMV" = function(p) exp(est_par[1] - est_par[2] * log(-log(1 - p)) ),
     "exp" = function(p) qexp(p, rate = 1 / est_par[1])
   )
 
-  # --- Imputation step
   times <- numeric(length(left))
   for (i in seq_along(left)) {
     if (!is.finite(right[i])) {
@@ -127,12 +128,43 @@ mle_imp <- function(left, right, dist = "weibull",
 
   times <- pmax(times, 1e-5)
 
-  # --- Final MLE on imputed data
-  neg_loglik_final <- neg_loglik_init  # reuse the same function
+  neg_loglik_final <- switch(dist,
+    "weibull" = function(par) -sum(dweibull(times, par[1], par[2], log = TRUE)),
+    "lognormal" = function(par) -sum(dlnorm(times, par[1], par[2], log = TRUE)),
+    "loglogistic" = function(par) {
+      shape <- par[1]; scale <- par[2]
+      logf <- log(shape) - log(scale) + (shape - 1) * log(times / scale) -
+              2 * log1p((times / scale)^shape)
+      -sum(logf)
+    },
+    "logistic" = function(par) -sum(dlogis(times, par[1], par[2], log = TRUE)),
+    "normal" = function(par) -sum(dnorm(times, par[1], par[2], log = TRUE)),
+    "gamma" = function(par) {
+      if (any(par <= 0)) return(Inf)
+      -sum(dgamma(times, par[1], par[2], log = TRUE))
+    },
+    "gompertz" = function(par) {
+      a <- par[1]; b <- par[2]
+      if (a <= 0 || b <= 0) return(Inf)
+      logf <- log(b) + a * times - (b / a) * (exp(a * times) - 1)
+      -sum(logf)
+    },
+    "EMV" = function(par) {
+      loc <- par[1]; scale <- par[2]
+      if (scale <= 0 || any(times <= 0)) return(Inf)
+      z <- (log(times) - loc) / scale
+      logf <- -log(times) - log(scale) - z - exp(-z)
+      -sum(logf)
+    },
+    "exp" = function(par) {
+      if (par[1] <= 0) return(Inf)
+      -sum(dexp(times, rate = 1 / par[1], log = TRUE))
+    }
+  )
+
   fit <- optim(par = est_par, fn = neg_loglik_final, method = "L-BFGS-B",
                lower = rep(1e-5, length(est_par)), hessian = TRUE)
 
-  # Assign correct parameter names
   param_names <- switch(dist,
     "weibull"     = c("shape", "scale"),
     "loglogistic" = c("shape", "scale"),
