@@ -5,13 +5,12 @@
 #' @param left Left bounds of censoring intervals
 #' @param right Right bounds of censoring intervals
 #' @param dist Distribution name (e.g. "weibull", "loglogistic", "EMV")
-#' @param true_params Optional list of true parameter names for labeling
 #' @return A list containing estimates, standard errors, log-likelihood, and convergence status
 #' @export
-mle_int <- function(left, right, dist, true_params = list()) {
+mle_int <- function(left, right, dist) {
   left <- pmax(left, 1e-5)
   right <- pmax(right, 1e-5)
-
+  
   loglik <- function(params) {
     logL <- switch(
       dist,
@@ -104,11 +103,11 @@ mle_int <- function(left, right, dist, true_params = list()) {
       },
       stop("Unsupported distribution.")
     )
-
+    
     if (any(is.nan(logL) | is.infinite(logL))) return(Inf)
     -sum(logL)
   }
-
+  
   init <- switch(
     dist,
     "weibull" = c(1, 1),
@@ -116,41 +115,51 @@ mle_int <- function(left, right, dist, true_params = list()) {
     "exp" = c(1),
     c(1, 1)
   )
-
+  
   lower_bounds <- rep(1e-5, length(init))
   fit <- optim(init, loglik, method = "L-BFGS-B", lower = lower_bounds, hessian = TRUE)
-
+  
   estimates <- fit$par
   hessian <- fit$hessian
-
+  
   if (is.null(hessian) || any(is.na(hessian)) || inherits(try(solve(hessian), silent = TRUE), "try-error")) {
     se <- rep(NA, length(estimates))
     warning("Hessian not invertible.")
   } else {
     se <- sqrt(diag(solve(hessian)))
   }
-
+  
   tvals <- estimates / se
   pvals <- 2 * (1 - pnorm(abs(tvals)))
-
+  
+  # Define parameter names based on distribution
+  param_names <- switch(dist,
+                        "weibull"     = c("shape", "scale"),
+                        "loglogistic" = c("shape", "scale"),
+                        "gamma"       = c("shape", "scale"),
+                        "gompertz"    = c("shape", "scale"),
+                        "exp"         = "scale",
+                        "lognormal"   = c("meanlog", "sdlog"),
+                        "logistic"    = c("location", "scale"),
+                        "normal"      = c("location", "scale"),
+                        "EMV"         = c("location", "scale"),
+                        paste0("param", seq_along(estimates))
+  )
+  
   result <- data.frame(
     Estimate = estimates,
     SE = se,
     t = tvals,
     p = formatC(pvals, digits = 6, format = "f")
   )
-
-  rownames(result) <- if (!is.null(names(true_params)) && length(true_params) == length(estimates)) {
-    names(true_params)
-  } else {
-    paste0("param", seq_along(estimates))
-  }
-
+  
+  rownames(result) <- param_names
+  
   list(
     distribution = dist,
-    true_params = true_params,
     estimates = result,
     logLik = -fit$value,
     converged = fit$convergence == 0
   )
 }
+
