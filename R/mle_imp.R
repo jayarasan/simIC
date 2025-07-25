@@ -13,10 +13,10 @@ mle_imp <- function(left, right, dist = "weibull",
                     impute = c("midpoint", "random", "median",
                                "harmonic_median", "geometric_median", "random_survival")) {
   impute <- match.arg(impute)
-  
+
   prelim_times <- ifelse(is.finite(right), (left + right) / 2, left)
   prelim_times <- pmax(prelim_times, 1e-5)
-  
+
   neg_loglik_init <- switch(dist,
                             "weibull" = function(par) -sum(dweibull(prelim_times, par[1], par[2], log = TRUE)),
                             "lognormal" = function(par) -sum(dlnorm(prelim_times, par[1], par[2], log = TRUE)),
@@ -51,7 +51,7 @@ mle_imp <- function(left, right, dist = "weibull",
                             },
                             stop("Unsupported distribution.")
   )
-  
+
   init <- switch(dist,
                  "weibull" = c(1, 1),
                  "lognormal" = c(mean(log(prelim_times)), sd(log(prelim_times))),
@@ -63,11 +63,10 @@ mle_imp <- function(left, right, dist = "weibull",
                  "EMV" = c(mean(log(prelim_times)), sd(log(prelim_times))),
                  "exp" = c(mean(prelim_times))
   )
-  
+
   fit0 <- optim(par = init, fn = neg_loglik_init, method = "L-BFGS-B", lower = rep(1e-5, length(init)))
   est_par <- fit0$par
-  
-  # Distribution CDF and Quantile functions for survival-based imputation
+
   cdf_fn <- switch(dist,
                    "weibull" = function(t) pweibull(t, shape = est_par[1], scale = est_par[2]),
                    "lognormal" = function(t) plnorm(t, meanlog = est_par[1], sdlog = est_par[2]),
@@ -79,7 +78,7 @@ mle_imp <- function(left, right, dist = "weibull",
                    "EMV" = function(t) 1 - exp(-exp(-(log(t) - est_par[1]) / est_par[2])),
                    "exp" = function(t) pexp(t, rate = 1 / est_par[1])
   )
-  
+
   quantile_fn <- switch(dist,
                         "weibull" = function(p) qweibull(p, shape = est_par[1], scale = est_par[2]),
                         "lognormal" = function(p) qlnorm(p, meanlog = est_par[1], sdlog = est_par[2]),
@@ -88,17 +87,19 @@ mle_imp <- function(left, right, dist = "weibull",
                         "normal" = function(p) qnorm(p, mean = est_par[1], sd = est_par[2]),
                         "gamma" = function(p) qgamma(p, shape = est_par[1], scale = est_par[2]),
                         "gompertz" = function(p) {
-                          val <- tryCatch(log(1 - log(1 - p) * (est_par[1] / est_par[2])) / est_par[1],
-                                          error = function(e) NA)
+                          val <- tryCatch(log(1 - log(1 - p) * (est_par[1] / est_par[2])) / est_par[1], error = function(e) NA)
                           ifelse(is.finite(val) & val > 0, val, NA)
                         },
-                        "EMV" = function(p) exp(est_par[1] - est_par[2] * log(-log(1 - p)) ),
+                        "EMV" = function(p) exp(est_par[1] - est_par[2] * log(-log(1 - p))),
                         "exp" = function(p) qexp(p, rate = 1 / est_par[1])
   )
-  
+
   times <- numeric(length(left))
   for (i in seq_along(left)) {
-    if (!is.finite(right[i])) {
+    is_left_censored <- !is.finite(right[i])
+    if (left[i] == 0 && right[i] > 0) is_left_censored <- FALSE
+
+    if (is_left_censored) {
       times[i] <- left[i]
     } else if (impute == "midpoint") {
       times[i] <- (left[i] + right[i]) / 2
@@ -123,9 +124,9 @@ mle_imp <- function(left, right, dist = "weibull",
       }
     }
   }
-  
+
   times <- pmax(times, 1e-5)
-  
+
   neg_loglik_final <- switch(dist,
                              "weibull" = function(par) -sum(dweibull(times, par[1], par[2], log = TRUE)),
                              "lognormal" = function(par) -sum(dlnorm(times, par[1], par[2], log = TRUE)),
@@ -159,11 +160,11 @@ mle_imp <- function(left, right, dist = "weibull",
                                -sum(dexp(times, rate = 1 / par[1], log = TRUE))
                              }
   )
-  
+
   fit <- optim(par = est_par, fn = neg_loglik_final, method = "L-BFGS-B",
                lower = rep(1e-5, length(est_par)), hessian = FALSE)
   hessian <- tryCatch(optimHess(fit$par, neg_loglik_final), error = function(e) NULL)
-  
+
   param_names <- switch(dist,
                         "weibull"     = c("shape", "scale"),
                         "loglogistic" = c("shape", "scale"),
@@ -176,9 +177,10 @@ mle_imp <- function(left, right, dist = "weibull",
                         "EMV"         = c("location", "scale"),
                         c("param1", "param2")
   )
+
   param_names <- param_names[seq_along(fit$par)]
   estimates <- setNames(fit$par, param_names)
-  
+
   if (fit$convergence == 0 && !is.null(hessian)) {
     vcov <- tryCatch(solve(hessian), error = function(e) matrix(NA, length(estimates), length(estimates)))
     se <- sqrt(diag(vcov))
@@ -189,7 +191,7 @@ mle_imp <- function(left, right, dist = "weibull",
   } else {
     results <- data.frame(Estimate = estimates, Std.Error = NA, t.value = NA, p.value = NA)
   }
-  
+
   return(list(
     distribution = dist,
     imputation = impute,
