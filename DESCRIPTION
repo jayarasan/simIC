@@ -1,13 +1,16 @@
 Package: simIC
-Title: Simulate and Analyze Interval-Censored Survival Data
-Version: 0.0.9000
+Title: Simulate and Analyze Interval and Mixed-Censored Survival Data
+Version: 0.1.0
 Authors@R: 
     person("Jayanthi", "Arasan", email = "your@email.com", role = c("aut", "cre"))
 Description: 
-    Provides tools to simulate and analyze interval-censored survival data
-    from common parametric distributions such as Weibull, Exponential, and
-    Log-Normal. Includes imputation methods, maximum likelihood estimation,
-    and visualization functions for model evaluation and teaching purposes.
+    Provides tools to simulate and analyze interval-censored survival data, 
+    including left-, right-, and uncensored cases, under common parametric 
+    distributions such as Weibull, Exponential, Log-Normal, Log-Logistic, 
+    Gamma, Gompertz, Normal, Logistic, and EMV. The package supports both 
+    direct maximum likelihood estimation and imputation-based approaches, 
+    making it suitable for methodological research, benchmarking, and teaching 
+    purposes. An interactive web-based companion tool is also available.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
