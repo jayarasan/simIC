@@ -3,7 +3,8 @@
 <!-- badges: start -->
 <!-- badges: end -->
 
-The `simIC` package provides flexible tools for simulating **interval-censored survival data** from a variety of parametric distributions. It is useful for teaching, model development, and testing methods in survival analysis.
+The `simIC` package provides tools for simulating and analyzing **interval-censored survival data**, including left-, right-, and uncensored observations, using a variety of parametric distributions. It is useful for teaching, model development, and method evaluation in survival analysis.
+
 
 ## ✨ Features
 
