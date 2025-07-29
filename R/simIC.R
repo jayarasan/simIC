@@ -13,7 +13,15 @@
 #' @param study_end Optional: right-censoring cutoff.
 #' @param uncensored_tol Tolerance to treat (left, right) as exact event.
 #' @return A data frame with columns: id, left, right, true_time, censoring
+#' @examples
+#' # Simulate 100 survival times from a log-normal distribution
+#' set.seed(123)
+#' data <- simIC(n = 100, dist = "lognormal", meanlog = 1.5, sdlog = 0.5, width = 2,
+#'               study_start = 1, study_end = 8, uncensored_tol = 0.1)
+#' head(data)
 #' @export
+#' @importFrom stats dexp dgamma dlnorm dlogis dnorm dweibull median optim optimHess pexp pgamma plnorm plogis pnorm pweibull qexp qgamma qlnorm qlogis qnorm qweibull rexp rgamma rlnorm rlogis rnorm runif rweibull sd setNames
+
 simIC <- function(n = 100,
                   dist = "weibull",
                   shape = 2,
