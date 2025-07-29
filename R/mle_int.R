@@ -6,7 +6,19 @@
 #' @param right Right bounds of censoring intervals
 #' @param dist Distribution name (e.g. "weibull", "loglogistic", "EMV")
 #' @return A list containing estimates, standard errors, log-likelihood, and convergence status
+#' @examples
+#' # Simulate data from a log-logistic distribution
+#' set.seed(123)
+#' data <- simIC(n = 100, dist = "loglogistic", shape = 1.5, scale = 5, width = 2,
+#'               study_start = 1, study_end = 8, uncensored_tol = 0.1)
+#' # Fit the model
+#' fit <- mle_int(left = data$left, right = data$right, dist = "loglogistic")
+#' print(fit$estimates)
+#' print(fit$logLik)
+#' print(fit$converged)
 #' @export
+#' @importFrom stats dexp dgamma dlnorm dlogis dnorm dweibull median optim optimHess pexp pgamma plnorm plogis pnorm pweibull qexp qgamma qlnorm qlogis qnorm qweibull rexp rgamma rlnorm rlogis rnorm runif rweibull sd setNames
+
 mle_int <- function(left, right, dist) {
   left <- pmax(left, 1e-5)
   right <- pmax(right, 1e-5)
