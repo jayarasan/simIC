@@ -8,7 +8,23 @@
 #' @param impute Imputation method: "midpoint", "random", "median",
 #' "harmonic_median", "geometric_median", "random_survival"
 #' @return A list containing estimates, standard errors, and log-likelihood
+#' @examples
+#' # Simulate interval-censored data from a Weibull distribution
+#' set.seed(123)
+#' dat <- simIC(n = 100, dist = "weibull", shape = 1.5, scale = 5, width = 2,
+#'              study_start = 1, study_end = 8, uncensored_tol = 0.1)
+#' 
+#' # Fit model using harmonic median imputation
+#' fit <- mle_imp(left = dat$left, right = dat$right, dist = "weibull", impute = "harmonic_median")
+#' 
+#' # Inspect results
+#' print(fit$estimates)
+#' print(fit$logLik)
+#' print(fit$converged)
+
 #' @export
+#' @importFrom stats dexp dgamma dlnorm dlogis dnorm dweibull median optim optimHess pexp pgamma plnorm plogis pnorm pweibull qexp qgamma qlnorm qlogis qnorm qweibull rexp rgamma rlnorm rlogis rnorm runif rweibull sd setNames
+
 mle_imp <- function(left, right, dist = "weibull",
                     impute = c("midpoint", "random", "median",
                                "harmonic_median", "geometric_median", "random_survival")) {
